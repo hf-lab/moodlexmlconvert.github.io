@@ -402,6 +402,13 @@
                             <span>%</span>
                             <button class="btn-remove">×</button>
                         </div>
+                        <div class="choice-input">
+                            <input type="checkbox" class="correct-checkbox">
+                            <input type="text" class="choice-text" placeholder="Enter choice text...">
+                            <input type="number" class="percentage-input" min="0" max="100" value="0" step="5">
+                            <span>%</span>
+                            <button class="btn-remove">×</button>
+                        </div>
                     </div>
                     
                     <div class="buttons">
@@ -791,6 +798,27 @@
                 tinymce.get('question-text').setContent('');
                 tinymce.get('general-feedback').setContent('');
                 choicesContainer.innerHTML = `
+                    <div class="choice-input">
+                        <input type="checkbox" class="correct-checkbox">
+                        <input type="text" class="choice-text" placeholder="Enter choice text...">
+                        <input type="number" class="percentage-input" min="0" max="100" value="0" step="5">
+                        <span>%</span>
+                        <button class="btn-remove">×</button>
+                    </div>
+                    <div class="choice-input">
+                        <input type="checkbox" class="correct-checkbox">
+                        <input type="text" class="choice-text" placeholder="Enter choice text...">
+                        <input type="number" class="percentage-input" min="0" max="100" value="0" step="5">
+                        <span>%</span>
+                        <button class="btn-remove">×</button>
+                    </div>
+                    <div class="choice-input">
+                        <input type="checkbox" class="correct-checkbox">
+                        <input type="text" class="choice-text" placeholder="Enter choice text...">
+                        <input type="number" class="percentage-input" min="0" max="100" value="0" step="5">
+                        <span>%</span>
+                        <button class="btn-remove">×</button>
+                    </div>
                     <div class="choice-input">
                         <input type="checkbox" class="correct-checkbox">
                         <input type="text" class="choice-text" placeholder="Enter choice text...">
