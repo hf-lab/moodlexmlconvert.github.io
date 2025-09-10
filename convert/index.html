@@ -1,0 +1,546 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to Moodle XML Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #fafafa;
+            margin-bottom: 30px;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 4em;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .upload-text {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .convert-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            margin-top: 20px;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .download-link {
+            display: inline-block;
+            margin-top: 10px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .download-link:hover {
+            text-decoration: underline;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Excel → Moodle XML</h1>
+            <p>Convert your Excel quiz files to Moodle-compatible XML format</p>
+        </div>
+        
+        <div class="content">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">
+                    Drop your Excel file here or click to browse
+                </div>
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" />
+            </div>
+            
+            <div class="form-group">
+                <label for="categoryInput">Moodle Category Name:</label>
+                <input type="text" id="categoryInput" value="Imported from Excel" 
+                       placeholder="Enter category name...">
+            </div>
+            
+            <button class="btn convert-btn" id="convertBtn" disabled>
+                🔄 Convert to Moodle XML
+            </button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Converting your file...</p>
+            </div>
+            
+            <div class="status" id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        
+        // File input handling
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const convertBtn = document.getElementById('convertBtn');
+        const status = document.getElementById('status');
+        const loading = document.getElementById('loading');
+        
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        function handleFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                showStatus('Please select an Excel file (.xlsx or .xls)', 'error');
+                return;
+            }
+            
+            selectedFile = file;
+            uploadArea.innerHTML = `
+                <div class="upload-icon">✅</div>
+                <div class="upload-text">File selected: ${file.name}</div>
+                <button class="btn" onclick="document.getElementById('fileInput').click()">
+                    Choose Different File
+                </button>
+            `;
+            convertBtn.disabled = false;
+            hideStatus();
+        }
+        
+        // Convert functionality
+        convertBtn.addEventListener('click', convertFile);
+        
+        function convertFile() {
+            if (!selectedFile) return;
+            
+            loading.style.display = 'block';
+            convertBtn.disabled = true;
+            hideStatus();
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    if (jsonData.length === 0) {
+                        throw new Error('The Excel file appears to be empty');
+                    }
+                    
+                    // Normalize and validate data
+                    const normalizedData = normalizeData(jsonData);
+                    validateData(normalizedData);
+                    
+                    // Convert to Moodle XML
+                    const categoryName = document.getElementById('categoryInput').value || 'Imported from Excel';
+                    const xml = generateMoodleXML(normalizedData, categoryName);
+                    
+                    // Create download
+                    downloadXML(xml, selectedFile.name.replace(/\.(xlsx|xls)$/i, '.xml'));
+                    
+                    showStatus('✅ Conversion successful! Your Moodle XML file is ready for download.', 'success');
+                    
+                } catch (error) {
+                    console.error('Conversion error:', error);
+                    showStatus(`❌ Error: ${error.message}`, 'error');
+                } finally {
+                    loading.style.display = 'none';
+                    convertBtn.disabled = false;
+                }
+            };
+            
+            reader.readAsArrayBuffer(selectedFile);
+        }
+        
+        function normalizeData(data) {
+            return data.map(row => {
+                const normalized = {};
+                
+                // Normalize column names
+                Object.keys(row).forEach(key => {
+                    const normalizedKey = key.toString().trim().toLowerCase().replace(/[\s\-_]+/g, '');
+                    
+                    if (normalizedKey === 'name') normalized.Name = row[key];
+                    else if (normalizedKey === 'question') normalized.Question = row[key];
+                    else if (normalizedKey === 'generalfeedback') normalized.GeneralFeedback = row[key];
+                    else if (normalizedKey === 'defaultgrade') normalized.DefaultGrade = row[key];
+                    else if (normalizedKey === 'shuffle') normalized.Shuffle = row[key];
+                    else {
+                        for (let i = 1; i <= 5; i++) {
+                            if (normalizedKey === `choice${i}`) normalized[`Choice${i}`] = row[key];
+                            else if (normalizedKey === `fraction${i}`) normalized[`Fraction${i}`] = row[key];
+                            else if (normalizedKey === `choicefeedback${i}`) normalized[`ChoiceFeedback${i}`] = row[key];
+                        }
+                    }
+                });
+                
+                return normalized;
+            });
+        }
+        
+        function validateData(data) {
+            const required = ['Question', 'Choice1', 'Choice2', 'Choice3', 'Choice4', 'Choice5',
+                            'Fraction1', 'Fraction2', 'Fraction3', 'Fraction4', 'Fraction5'];
+            
+            if (data.length === 0) {
+                throw new Error('No data found in the Excel file');
+            }
+            
+            const firstRow = data[0];
+            const missing = required.filter(col => !(col in firstRow));
+            
+            if (missing.length > 0) {
+                throw new Error(`Missing required columns: ${missing.join(', ')}`);
+            }
+        }
+        
+        function generateMoodleXML(data, categoryName) {
+            let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<quiz>\n';
+            
+            // Add category
+            xml += `  <question type="category">
+    <category>
+      <text>$course$/${escapeXML(categoryName)}</text>
+    </category>
+  </question>\n`;
+            
+            // Add questions
+            data.forEach((row, index) => {
+                xml += generateQuestionXML(row, index);
+            });
+            
+            xml += '</quiz>';
+            return xml;
+        }
+        
+        function generateQuestionXML(row, index) {
+            const name = row.Name || `Q${index + 1}`;
+            const question = convertMarkupToHTML(row.Question || '');
+            const defaultGrade = parseFloat(row.DefaultGrade) || 5.0;
+            const generalFeedback = convertMarkupToHTML(row.GeneralFeedback || '');
+            const shuffle = cleanBool(row.Shuffle, true);
+            
+            // Calculate if single answer
+            const fractions = [];
+            for (let i = 1; i <= 5; i++) {
+                fractions.push(parseFloat(row[`Fraction${i}`]) || 0.0);
+            }
+            const maxFrac = Math.max(...fractions);
+            const single = fractions.filter(f => Math.abs(f - maxFrac) < 0.000001).length === 1 && maxFrac >= 99.999999;
+            
+            let xml = `  <question type="multichoice">
+    <name>
+      <text>${escapeXML(name)}</text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[${question}]]></text>
+    </questiontext>
+    <defaultgrade>${defaultGrade.toFixed(2)}</defaultgrade>
+    <penalty>0.0</penalty>
+    <single>${single ? 'true' : 'false'}</single>
+    <shuffleanswers>${shuffle ? 'true' : 'false'}</shuffleanswers>
+    <answernumbering>ABCD</answernumbering>
+    <generalfeedback format="html">
+      <text><![CDATA[${generalFeedback}]]></text>
+    </generalfeedback>\n`;
+            
+            // Add answers
+            for (let i = 1; i <= 5; i++) {
+                const choiceText = convertMarkupToHTML(row[`Choice${i}`] || '');
+                const fraction = Math.max(-100, Math.min(100, parseFloat(row[`Fraction${i}`]) || 0.0));
+                const feedback = convertMarkupToHTML(row[`ChoiceFeedback${i}`] || '');
+                
+                xml += `    <answer fraction="${fraction}" format="html">
+      <text><![CDATA[${choiceText}]]></text>
+      <feedback format="html">
+        <text><![CDATA[${feedback}]]></text>
+      </feedback>
+    </answer>\n`;
+            }
+            
+            xml += '  </question>\n';
+            return xml;
+        }
+        
+        function convertMarkupToHTML(text) {
+            if (!text) return '';
+            
+            // Strip control characters and normalize
+            text = text.toString().replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+            text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            text = text.replace(/\[br\]/g, '\n');
+            
+            // Escape HTML
+            text = escapeHTML(text);
+            
+            // Bold (**...**)
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            
+            // Italic (*...*)
+            text = text.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+            
+            // Process lists
+            const lines = text.split('\n');
+            const htmlLines = [];
+            let i = 0;
+            
+            while (i < lines.length) {
+                const line = lines[i];
+                
+                // Bullet list
+                if (/^\s*-\s+/.test(line)) {
+                    const items = [];
+                    while (i < lines.length && /^\s*-\s+/.test(lines[i])) {
+                        items.push(lines[i].replace(/^\s*-\s+/, '').trim());
+                        i++;
+                    }
+                    htmlLines.push('<ul>' + items.map(item => `<li>${item}</li>`).join('') + '</ul>');
+                    continue;
+                }
+                
+                // Numbered list
+                if (/^\s*\d+[\.\)]\s+/.test(line)) {
+                    const items = [];
+                    while (i < lines.length && /^\s*\d+[\.\)]\s+/.test(lines[i])) {
+                        items.push(lines[i].replace(/^\s*\d+[\.\)]\s+/, '').trim());
+                        i++;
+                    }
+                    htmlLines.push('<ol>' + items.map(item => `<li>${item}</li>`).join('') + '</ol>');
+                    continue;
+                }
+                
+                htmlLines.push(line);
+                i++;
+            }
+            
+            let html = htmlLines.join('<br/>');
+            html = html.replace(/(?:<br\/>\s*){3,}/g, '<br/><br/>');
+            return html;
+        }
+        
+        function cleanBool(value, defaultValue = true) {
+            if (typeof value === 'boolean') return value;
+            if (value == null) return defaultValue;
+            const str = value.toString().trim().toLowerCase();
+            if (['true', 't', '1', 'yes', 'y'].includes(str)) return true;
+            if (['false', 'f', '0', 'no', 'n'].includes(str)) return false;
+            return defaultValue;
+        }
+        
+        function escapeXML(str) {
+            if (!str) return '';
+            return str.toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&apos;');
+        }
+        
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#x27;');
+        }
+        
+        function downloadXML(xmlContent, filename) {
+            const blob = new Blob([xmlContent], { type: 'application/xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            status.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
