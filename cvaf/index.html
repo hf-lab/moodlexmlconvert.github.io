@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON to Excel Question Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            background: #f8f9ff;
+            border: 2px dashed #4facfe;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .upload-section.dragover {
+            border-color: #667eea;
+            background: #e8f0fe;
+            transform: scale(1.02);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .file-input {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .file-info {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .processing {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .result-card {
+            background: #f8f9ff;
+            border: 1px solid #e0e4ff;
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .stats {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .stats h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .preview-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .preview-table th,
+        .preview-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .preview-table th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .preview-table tr:hover {
+            background: #f8f9ff;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Question Converter</h1>
+            <p>Transform your JSON question data into organized Excel files</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">📁</div>
+                <h3>Upload Your JSON File</h3>
+                <p>Drag and drop your JSON file here, or click to browse</p>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" class="file-input" accept=".json" />
+                    <button class="file-input-button">Choose File</button>
+                </div>
+            </div>
+
+            <div class="file-info" id="fileInfo"></div>
+            <div class="processing" id="processing">
+                <div class="spinner"></div>
+                Processing your file...
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="results-section" id="resultsSection">
+                <div class="stats" id="stats"></div>
+                <div class="results-grid" id="resultsGrid"></div>
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <h3>📋 Preview (First 5 Questions)</h3>
+                <div style="overflow-x: auto;">
+                    <table class="preview-table" id="previewTable">
+                        <thead id="previewHeader"></thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let processedData = [];
+        let subjectData = {};
+
+        // File input handling
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInputButton = document.querySelector('.file-input-button');
+
+        fileInputButton.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop handling
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                showError('Please select a JSON file.');
+                return;
+            }
+
+            const fileInfo = document.getElementById('fileInfo');
+            fileInfo.innerHTML = `
+                <strong>📄 Selected File:</strong> ${file.name}<br>
+                <strong>📊 Size:</strong> ${(file.size / 1024).toFixed(2)} KB<br>
+                <strong>📅 Modified:</strong> ${new Date(file.lastModified).toLocaleString()}
+            `;
+            fileInfo.style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const jsonData = JSON.parse(e.target.result);
+                    processJsonData(jsonData);
+                } catch (error) {
+                    showError('Invalid JSON file format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function cleanHtml(htmlContent) {
+            if (!htmlContent) return '';
+            const div = document.createElement('div');
+            div.innerHTML = htmlContent;
+            return div.textContent || div.innerText || '';
+        }
+
+        function processJsonData(jsonData) {
+            document.getElementById('processing').style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+
+            setTimeout(() => {
+                try {
+                    const results = extractQuestions(jsonData);
+                    if (results.length === 0) {
+                        showError('No questions found in the JSON data.');
+                        return;
+                    }
+
+                    processedData = results;
+                    groupBySubject(results);
+                    displayResults(results);
+                    showPreview(results);
+                    
+                    document.getElementById('processing').style.display = 'none';
+                } catch (error) {
+                    showError('Error processing the JSON data: ' + error.message);
+                    document.getElementById('processing').style.display = 'none';
+                }
+            }, 500);
+        }
+
+        function extractQuestions(jsonData) {
+            const results = [];
+            
+            if (!jsonData.data || !jsonData.data.ujianPelajaran) {
+                throw new Error('Invalid JSON structure. Expected data.ujianPelajaran');
+            }
+
+            jsonData.data.ujianPelajaran.forEach(subject => {
+                const subjectName = subject.namaPelajaran || 'Unknown Subject';
+                
+                if (!subject.dataSoal) return;
+                
+                subject.dataSoal.forEach(questionData => {
+                    const questionInfo = {
+                        subject: subjectName,
+                        bab: questionData.bab || '',
+                        soalID: questionData.soalID || '',
+                        pertanyaan: cleanHtml(questionData.pertanyaan || ''),
+                        pembahasan: cleanHtml(questionData.pembahasan || ''),
+                        jawabanBenar: questionData.jawabanBenar || '',
+                    };
+
+                    // Extract choices
+                    for (let i = 1; i <= 5; i++) {
+                        const choiceKey = `pilihan${i}`;
+                        questionInfo[choiceKey] = cleanHtml(questionData[choiceKey] || '');
+                    }
+
+                    results.push(questionInfo);
+                });
+            });
+
+            return results;
+        }
+
+        function groupBySubject(results) {
+            subjectData = {};
+            results.forEach(result => {
+                const subject = result.subject;
+                if (!subjectData[subject]) {
+                    subjectData[subject] = [];
+                }
+                subjectData[subject].push(result);
+            });
+        }
+
+        function displayResults(results) {
+            const stats = document.getElementById('stats');
+            const subjectCount = Object.keys(subjectData).length;
+            
+            stats.innerHTML = `
+                <h3>✅ Processing Complete!</h3>
+                <p><strong>${results.length}</strong> questions found across <strong>${subjectCount}</strong> subjects</p>
+            `;
+
+            const resultsGrid = document.getElementById('resultsGrid');
+            resultsGrid.innerHTML = '';
+
+            // Add download all button
+            const allCard = document.createElement('div');
+            allCard.className = 'result-card';
+            allCard.innerHTML = `
+                <h4>📚 All Questions</h4>
+                <p><strong>${results.length}</strong> questions from all subjects</p>
+                <button class="download-btn" onclick="downloadAllExcel()">
+                    📥 Download All Questions
+                </button>
+            `;
+            resultsGrid.appendChild(allCard);
+
+            // Add individual subject cards
+            Object.keys(subjectData).forEach(subject => {
+                const questions = subjectData[subject];
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.innerHTML = `
+                    <h4>📖 ${subject}</h4>
+                    <p><strong>${questions.length}</strong> questions</p>
+                    <button class="download-btn" onclick="downloadSubjectExcel('${subject}')">
+                        📥 Download ${subject}
+                    </button>
+                `;
+                resultsGrid.appendChild(card);
+            });
+
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        function showPreview(results) {
+            const previewData = results.slice(0, 5);
+            const previewHeader = document.getElementById('previewHeader');
+            const previewBody = document.getElementById('previewBody');
+
+            if (previewData.length === 0) return;
+
+            // Create header
+            const headers = ['Subject', 'Bab', 'Question', 'Choice 1', 'Choice 2', 'Correct Answer'];
+            previewHeader.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+
+            // Create body
+            previewBody.innerHTML = previewData.map(item => `
+                <tr>
+                    <td>${item.subject}</td>
+                    <td>${item.bab}</td>
+                    <td>${item.pertanyaan.substring(0, 100)}${item.pertanyaan.length > 100 ? '...' : ''}</td>
+                    <td>${item.pilihan1.substring(0, 50)}${item.pilihan1.length > 50 ? '...' : ''}</td>
+                    <td>${item.pilihan2.substring(0, 50)}${item.pilihan2.length > 50 ? '...' : ''}</td>
+                    <td>Choice ${item.jawabanBenar}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('previewSection').style.display = 'block';
+        }
+
+        function downloadAllExcel() {
+            createExcelFile(processedData, 'all_questions.xlsx');
+        }
+
+        function downloadSubjectExcel(subject) {
+            const questions = subjectData[subject];
+            const filename = `${subject.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`;
+            createExcelFile(questions, filename);
+        }
+
+        function createExcelFile(data, filename) {
+            // Prepare data for Excel
+            const excelData = data.map(item => ({
+                'Subject': item.subject,
+                'Bab': item.bab,
+                'Question ID': item.soalID,
+                'Question': item.pertanyaan,
+                'Choice 1': item.pilihan1,
+                'Choice 2': item.pilihan2,
+                'Choice 3': item.pilihan3,
+                'Choice 4': item.pilihan4,
+                'Choice 5': item.pilihan5,
+                'Correct Answer': item.jawabanBenar,
+                'Explanation': item.pembahasan
+            }));
+
+            // Create workbook and worksheet
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(excelData);
+
+            // Set column widths
+            const colWidths = [
+                { wch: 20 }, // Subject
+                { wch: 8 },  // Bab
+                { wch: 10 }, // Question ID
+                { wch: 50 }, // Question
+                { wch: 30 }, // Choice 1
+                { wch: 30 }, // Choice 2
+                { wch: 30 }, // Choice 3
+                { wch: 30 }, // Choice 4
+                { wch: 30 }, // Choice 5
+                { wch: 12 }, // Correct Answer
+                { wch: 50 }  // Explanation
+            ];
+            ws['!cols'] = colWidths;
+
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'Questions');
+
+            // Save file
+            XLSX.writeFile(wb, filename);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('processing').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
