@@ -1,0 +1,134 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Universal JSON → XLSX Converter</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6fc; padding: 20px; }
+    .container { max-width: 800px; margin: auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);}
+    h1 { text-align: center; color: #4a4a8a; }
+    select, input[type=file], button { display: block; margin: 15px auto; padding: 12px; font-size: 1rem; border-radius: 6px; border: 1px solid #ccc; }
+    button { background: #667eea; color: #fff; border: none; cursor: pointer; }
+    button:hover { background: #5465d1; }
+    pre { background: #f8f9ff; padding: 10px; border-radius: 6px; max-height: 200px; overflow: auto; }
+    .status { margin-top: 15px; text-align: center; font-weight: bold; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Universal JSON → XLSX Converter</h1>
+
+  <label for="jsonType">Select JSON Type:</label>
+  <select id="jsonType">
+    <option value="alf">ALF (ujianPelajaran)</option>
+    <option value="vc">VC (soalId)</option>
+    <option value="idcpns">IDCPNS (options/sub_category)</option>
+  </select>
+
+  <input type="file" id="fileInput" accept=".json" />
+  <button onclick="processFile()">Convert to XLSX</button>
+
+  <div class="status" id="status"></div>
+  <h3>Preview:</h3>
+  <pre id="preview"></pre>
+</div>
+
+<script>
+let jsonData = null;
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      jsonData = JSON.parse(e.target.result);
+      document.getElementById('status').textContent = "✅ JSON Loaded";
+    } catch (err) {
+      document.getElementById('status').textContent = "❌ Invalid JSON";
+    }
+  };
+  reader.readAsText(file);
+});
+
+function processFile() {
+  const type = document.getElementById('jsonType').value;
+  if (!jsonData) { alert("Upload JSON first!"); return; }
+
+  let rows = [];
+
+  try {
+    if (type === "alf") {
+      jsonData.data.ujianPelajaran.forEach(subj => {
+        subj.dataSoal.forEach(q => {
+          rows.push({
+            Subject: subj.namaPelajaran,
+            Bab: q.bab || "",
+            SoalID: q.soalID || "",
+            Question: clean(q.pertanyaan),
+            Choice1: clean(q.pilihan1), Choice2: clean(q.pilihan2),
+            Choice3: clean(q.pilihan3), Choice4: clean(q.pilihan4),
+            Choice5: clean(q.pilihan5),
+            Correct: q.jawabanBenar,
+            Explanation: clean(q.pembahasan)
+          });
+        });
+      });
+    } else if (type === "vc") {
+      jsonData.data.soalId.forEach(item => {
+        item.jawaban.forEach(ans => {
+          rows.push({
+            SoalID: item.id,
+            Question: clean(item.soal),
+            Answer: clean(ans.jawaban),
+            Correct: ans.isCorrect,
+            Point: ans.point,
+            Explanation: clean(item.pembahasan),
+            Category: item.category,
+            SubCategory: item.subCategory,
+            Status: item.status
+          });
+        });
+      });
+    } else if (type === "idcpns") {
+      jsonData.data.forEach(item => {
+        item.options.forEach(opt => {
+          rows.push({
+            Question: item.soal,
+            Explanation: item.pembahasan,
+            Subcategory: item.sub_category?.subkategori || "",
+            Initial: opt.inisial,
+            Answer: opt.jawaban,
+            Score: opt.nilai
+          });
+        });
+      });
+    }
+  } catch (err) {
+    document.getElementById('status').textContent = "❌ Error parsing: " + err.message;
+    return;
+  }
+
+  // Preview
+  document.getElementById('preview').textContent = JSON.stringify(rows.slice(0,5), null, 2);
+
+  // Export
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Questions");
+  XLSX.writeFile(wb, `output_${type}.xlsx`);
+
+  document.getElementById('status').textContent = `✅ Converted ${rows.length} rows`;
+}
+
+function clean(html) {
+  if (!html) return "";
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  return div.textContent.trim();
+}
+</script>
+</body>
+</html>
