@@ -448,9 +448,13 @@
             
             // Bold (**...**)
             text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            
+
             // Italic (*...*)
             text = text.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+
+            // Underline (__...__)
+            text = text.replace(/__(.+?)__/g, '<u>$1</u>');
+
             
             // Process lists
             const lines = text.split('\n');
