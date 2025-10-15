@@ -406,7 +406,7 @@
       <text>${escapeXML(name)}</text>
     </name>
     <questiontext format="html">
-      <text><![CDATA[${question}]]></text>
+      <text><p><![CDATA[${question}]]></p></text>
     </questiontext>
     <defaultgrade>${defaultGrade.toFixed(2)}</defaultgrade>
     <penalty>0.0</penalty>
@@ -414,7 +414,7 @@
     <shuffleanswers>${shuffle ? 'true' : 'false'}</shuffleanswers>
     <answernumbering>ABCD</answernumbering>
     <generalfeedback format="html">
-      <text><![CDATA[${generalFeedback}]]></text>
+      <text><p><![CDATA[${generalFeedback}]]></p></text>
     </generalfeedback>\n`;
             
             // Add answers
